@@ -1,0 +1,74 @@
+// This is your Prisma schema file.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          String   @db.VarChar(20) // 'employee' | 'admin'
+  employeeId    String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  assessments   Assessment[]
+  draftData     DraftAssessment?
+
+  @@map("users")
+}
+
+model DraftAssessment {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Assessment data (stored as JSON for flexibility)
+  basicInfo             Json?
+  clinicalAssessment    Json?
+  lifestyle             Json?
+  biochemical           Json?
+  idrs                  Json?
+  timestamp             DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+  @@map("draft_assessments")
+}
+
+model Assessment {
+  id                String   @id @default(cuid())
+  employeeId        String
+  employeeName      String
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Assessment data (stored as JSON for flexibility)
+  basicInfo         Json
+  clinicalAssessment Json
+  lifestyle         Json
+  biochemical       Json
+  idrs              Json
+  
+  status            String   @db.VarChar(20) // 'submitted' | 'draft'
+  submittedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([employeeId])
+  @@index([submittedAt])
+  @@map("assessments")
+}
